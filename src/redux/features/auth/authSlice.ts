@@ -1,21 +1,35 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { UserDTO } from "./authApi";
 
-// Define a type for the slice state
-export interface CounterState {
-    value: number
+export interface AuthState {
+  token: string | null;
+  user: UserDTO | null;
 }
 
-// Define the initial state using that type
-const initialState: CounterState = {
-    value: 0
-}
+const initialState: AuthState = {
+  token: (typeof localStorage !== "undefined" && localStorage.getItem("token")) || null,
+  user: null,
+};
 
-export const authSlice = createSlice({
-    name: 'auth',
-    initialState,
-    reducers: {
-    }
-})
+const authSlice = createSlice({
+  name: "auth",
+  initialState,
+  reducers: {
+    setUser: (state, action: PayloadAction<{ token?: string; user?: UserDTO }>) => {
+      const { token, user } = action.payload;
+      if (token) {
+        state.token = token;
+        if (typeof localStorage !== "undefined") localStorage.setItem("token", token);
+      }
+      if (user) state.user = user;
+    },
+    logout: (state) => {
+      state.token = null;
+      state.user = null;
+      if (typeof localStorage !== "undefined") localStorage.removeItem("token");
+    },
+  },
+});
 
-
+export const { setUser, logout } = authSlice.actions;
 export default authSlice.reducer;
