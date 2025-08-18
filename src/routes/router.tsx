@@ -7,6 +7,7 @@ import RegisterPage from "@/page/Register";
 import ResetPassword from "@/page/ResetPassword";
 import VerifyOtp from "@/page/VerifyOtp";
 import { createBrowserRouter } from "react-router-dom";
+import ProtectedRoute from "./protectedRoute";
 
 
 const router = createBrowserRouter([
@@ -17,7 +18,7 @@ const router = createBrowserRouter([
         children: [
             {
                 path: "/",
-                element: <HomePage/>
+                element:<ProtectedRoute><HomePage /></ProtectedRoute>
             },
                         {
                 path: "/register",
