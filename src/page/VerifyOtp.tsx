@@ -16,9 +16,10 @@ const VerifyOtp = () => {
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const { register, handleSubmit, formState: { errors }, watch } = useForm<OtpInputs>();
+  const [resendCountdown, setResendCountdown] = useState(0);
+  const [resendMessage] = useState("");
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<OtpInputs>();
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
-  
   const otpValue = watch("otpCode", "");
 
   useEffect(() => {
@@ -35,6 +36,17 @@ const VerifyOtp = () => {
       navigate("/login");
     }
   }, [navigate]);
+
+  // Countdown timer for resend button
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (resendCountdown > 0) {
+      timer = setTimeout(() => {
+        setResendCountdown(resendCountdown - 1);
+      }, 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [resendCountdown]);
 
   const onSubmit = async ({ otpCode }: OtpInputs) => {
     try {
@@ -59,11 +71,14 @@ const VerifyOtp = () => {
     }
   };
 
-  const handleBackToLogin = () => {
-    localStorage.removeItem("pendingUser");
-    navigate("/login");
+  // Handle OTP input with proper form state management
+  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setValue("otpCode", value, { shouldValidate: true });
   };
 
+  // Check if button should be enabled
+  const isButtonDisabled = isLoading || otpValue.length !== 6;
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-white shadow-xl rounded-2xl border border-gray-200 p-8 w-full max-w-md">
@@ -79,13 +94,11 @@ const VerifyOtp = () => {
           </p>
           <p className="text-blue-600 font-semibold">{email}</p>
         </div>
-
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             <p className="text-sm text-center">{error}</p>
           </div>
         )}
-
         {successMessage && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
             <p className="text-sm text-center flex items-center justify-center">
@@ -96,7 +109,16 @@ const VerifyOtp = () => {
             </p>
           </div>
         )}
-
+        {resendMessage && (
+          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-4">
+            <p className="text-sm text-center flex items-center justify-center">
+              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+              </svg>
+              {resendMessage}
+            </p>
+          </div>
+        )}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -106,6 +128,7 @@ const VerifyOtp = () => {
               type="text"
               placeholder="Enter 6-digit code"
               maxLength={6}
+              value={otpValue}
               {...register("otpCode", { 
                 required: "OTP is required",
                 pattern: {
@@ -113,27 +136,29 @@ const VerifyOtp = () => {
                   message: "Please enter a valid 6-digit code"
                 }
               })}
-              className={`w-full px-4 py-3 border rounded-lg text-center text-xl font-mono tracking-widest focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+              className={`w-full px-4 py-3 border rounded-lg text-center text-xl font-mono tracking-widest focus:border-transparent transition-all ${
                 errors.otpCode ? "border-red-500 bg-red-50" : "border-gray-300"
               }`}
-              onChange={(e) => {
-                // Only allow numbers
-                const value = e.target.value.replace(/\D/g, '');
-                e.target.value = value;
-              }}
+              onChange={handleOtpChange}
+              autoComplete="off"
+              autoFocus
             />
             {errors.otpCode && (
               <p className="text-red-500 text-sm mt-1 text-center">{errors.otpCode.message}</p>
             )}
+            <div className="text-center mt-2">
+              <span className="text-xs text-gray-500">
+                {otpValue.length}/6 digits entered
+              </span>
+            </div>
           </div>
-
           <button
             type="submit"
-            disabled={isLoading || otpValue.length !== 6}
-            className={`w-full py-3 px-4 rounded-lg text-white font-semibold transition-all duration-200 ${
-              isLoading || otpValue.length !== 6
-                ? "bg-gray-400 cursor-not-allowed" 
-                : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 active:transform active:scale-98"
+            disabled={isButtonDisabled}
+            className={`w-full py-3 px-4 rounded-lg cursor-pointer text-white font-semibold transition-all duration-200 ${
+              isButtonDisabled
+                ? "bg-gray-400 cursor-not-allowed opacity-60" 
+                : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 active:transform active:scale-95 shadow-lg hover:shadow-xl"
             }`}
           >
             {isLoading ? (
@@ -145,36 +170,10 @@ const VerifyOtp = () => {
                 Verifying...
               </span>
             ) : (
-              "Verify & Sign In"
+              <span>Verify & Sign In</span>
             )}
           </button>
         </form>
-
-        <div className="mt-6 space-y-4">
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Didn't receive the code?</p>
-            <button 
-              type="button"
-              className="text-blue-600 hover:text-blue-500 text-sm font-medium hover:underline transition-colors"
-              onClick={() => {
-                // Implement resend OTP logic here
-                alert("Resend OTP functionality would be implemented here");
-              }}
-            >
-              Resend Code
-            </button>
-          </div>
-          
-          <div className="text-center pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={handleBackToLogin}
-              className="text-gray-600 hover:text-gray-500 text-sm hover:underline transition-colors"
-            >
-              ← Back to Login
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
