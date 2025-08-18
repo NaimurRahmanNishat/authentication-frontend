@@ -1,5 +1,5 @@
 const getBaseUrl = () => {
-  return typeof window !== 'undefined' ? 'http://localhost:5000' : 'http://localhost:5000';
+  return typeof window !== 'undefined' ? 'https://authentication-backend-alpha.vercel.app' : 'https://authentication-backend-alpha.vercel.app';
 };
 
 export { getBaseUrl };
