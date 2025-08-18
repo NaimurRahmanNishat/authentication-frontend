@@ -47,7 +47,9 @@ export const authApi = createApi({
             })
         }),
         // POST /api/auth/login  (Step-1: sends OTP)
-        login: builder.mutation<ApiResponse<{ email: string }>, { email: string; password: string }>({
+        login: builder.mutation<ApiResponse<{
+          message: string; email: string 
+}>, { email: string; password: string }>({
             query: (body) => ({
                 url: '/login',
                 method: 'POST',
