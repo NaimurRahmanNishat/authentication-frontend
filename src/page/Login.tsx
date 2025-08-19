@@ -61,7 +61,7 @@ const Login = () => {
                   message: "Invalid email address"
                 }
               })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.email ? "border-red-500 bg-red-50" : "border-gray-300"
+              className={`w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 ${errors.email ? "border-red-500 bg-red-50" : "border-gray-300"
                 }`}
             />
             {errors.email && (
@@ -81,7 +81,7 @@ const Login = () => {
                 required: "Password is required",
                 minLength: { value: 6, message: "Password must be at least 6 characters" },
               })}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.password ? "border-red-500 bg-red-50" : "border-gray-300"
+              className={`w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-green-400 ${errors.password ? "border-red-500 bg-red-50" : "border-gray-300"
                 }`}
             />
             {errors.password && (

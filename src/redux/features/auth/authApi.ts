@@ -1,26 +1,26 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getBaseUrl } from "@/utils/getBaseUrl";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export type ApiMessage = string | Record<string, unknown>;
 export interface ApiResponse<T = unknown> {
-  success: boolean;
-  message: ApiMessage;
-  data?: T;
-  error?: string | null;
+    success: boolean;
+    message: ApiMessage;
+    data?: T;
+    error?: string | null;
 }
 
 export interface UserDTO {
-  id: string;
-  username: string;
-  email: string;
+    message: string;
+    id: string;
+    username: string;
+    email: string;
 }
 
 export interface LoginVerifyResponse {
-  token: string;
-  id: string;
-  username: string;
-  email: string;
+    token: string;
+    id: string;
+    username: string;
+    email: string;
 }
 
 export const authApi = createApi({
@@ -38,7 +38,7 @@ export const authApi = createApi({
     }),
     tagTypes: ['Auth'],
     endpoints: (builder) => ({
-        // POST /api/auth/register
+        // POST /api/auth/register (Step-1: sends OTP)
         register: builder.mutation<ApiResponse<UserDTO>, { username: string; email: string; password: string }>({
             query: (newUser) => ({
                 url: '/register',
@@ -46,10 +46,17 @@ export const authApi = createApi({
                 body: newUser
             })
         }),
+        // POST /api/auth/verify-register-otp (Step-2: returns token + user)
+        verifyRegisterOtp: builder.mutation<ApiResponse<UserDTO>, { email: string; otpCode: string }>({
+            query: (body) => ({
+                url: "/verify-register-otp",
+                method: "POST",
+                body,
+            }),
+            invalidatesTags: ["Auth"],
+        }),
         // POST /api/auth/login  (Step-1: sends OTP)
-        login: builder.mutation<ApiResponse<{
-          message: string; email: string 
-}>, { email: string; password: string }>({
+        login: builder.mutation<ApiResponse<{ message: string; email: string }>, { email: string; password: string }>({
             query: (body) => ({
                 url: '/login',
                 method: 'POST',
@@ -63,18 +70,6 @@ export const authApi = createApi({
                 method: "POST",
                 body: body
             }),
-            async onQueryStarted(_arg, { queryFulfilled }) {
-                try {
-                    const { data } = await queryFulfilled;
-                    // persist token if it's in response (server also sets httpOnly cookie)
-                    const token = (data?.data as any)?.token;
-                    if (token && typeof localStorage !== "undefined") {
-                        localStorage.setItem("token", token);
-                    }
-                } catch {
-                    // no-op
-                }
-            },
             invalidatesTags: ["Auth"],
         }),
         // POST /api/auth/forgot-password (sends OTP via email)
@@ -104,4 +99,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useRegisterMutation, useLoginMutation, useVerifyOtpMutation, useForgotPasswordMutation, useResetPasswordMutation, useLogoutMutation } = authApi;
+export const { useRegisterMutation, useVerifyRegisterOtpMutation, useLoginMutation, useVerifyOtpMutation, useForgotPasswordMutation, useResetPasswordMutation, useLogoutMutation } = authApi;

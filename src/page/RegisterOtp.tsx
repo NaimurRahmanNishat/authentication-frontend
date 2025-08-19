@@ -1,17 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import { useVerifyRegisterOtpMutation } from "@/redux/features/auth/authApi";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useVerifyOtpMutation } from "../redux/features/auth/authApi";
-import { useDispatch } from "react-redux";
-import { setUser } from "../redux/features/auth/authSlice";
 
 type OtpInputs = {
   otpCode: string;
 };
 
-const VerifyOtp = () => {
-  const dispatch = useDispatch();
+const RegisterOtp = () => {
   const navigate = useNavigate();
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
@@ -19,7 +16,7 @@ const VerifyOtp = () => {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [resendMessage] = useState("");
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<OtpInputs>();
-  const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
+  const [verifyOtp, { isLoading }] = useVerifyRegisterOtpMutation();
   const otpValue = watch("otpCode", "");
 
   useEffect(() => {
@@ -30,10 +27,10 @@ const VerifyOtp = () => {
         setEmail(email);
       } catch (err) {
         console.error("Error parsing pending user:", err);
-        navigate("/login");
+        navigate("/register");
       }
     } else {
-      navigate("/login");
+      navigate("/register");
     }
   }, [navigate]);
 
@@ -48,31 +45,24 @@ const VerifyOtp = () => {
     return () => clearTimeout(timer);
   }, [resendCountdown]);
 
-  const onSubmit = async ({ otpCode }: OtpInputs) => {
-    try {
-      setError("");
-      setSuccessMessage("");
-      const response = await verifyOtp({ email, otpCode }).unwrap();
-      if (response.success && response.data) {
-        const { token, id, username, email: userEmail } = response.data;
-        // Update Redux store
-        dispatch(setUser({ token, user: {
-          id, username, email: userEmail,
-          message: ""
-        }}));
-        // Clear pending user data
-        localStorage.removeItem("pendingUser");
-        setSuccessMessage("Login successful! Redirecting...");
-        // Navigate to dashboard/home after short delay
-        setTimeout(() => {
-          navigate("/");
-        }, 100);
-      }
-    } catch (err: any) {
-      console.error("OTP verification error:", err);
-      setError(err?.data?.message || err?.data?.error || "Invalid or expired OTP. Please try again.");
+const onSubmit = async ({ otpCode }: OtpInputs) => {
+  try {
+    setError("");
+    setSuccessMessage("");
+    const response = await verifyOtp({ email, otpCode }).unwrap();
+    if (response.success && response.data) {
+      localStorage.removeItem("pendingUser");
+      setSuccessMessage("Account verified successfully! Redirecting to login...");
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
     }
-  };
+  } catch (err: any) {
+    console.error("OTP verification error:", err);
+    setError(err?.data?.message || err?.data?.error || "Invalid or expired OTP. Please try again.");
+  }
+};
+
 
   // Handle OTP input with proper form state management
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,16 +122,15 @@ const VerifyOtp = () => {
               placeholder="Enter 6-digit code"
               maxLength={6}
               value={otpValue}
-              {...register("otpCode", { 
+              {...register("otpCode", {
                 required: "OTP is required",
                 pattern: {
                   value: /^\d{6}$/,
                   message: "Please enter a valid 6-digit code"
                 }
               })}
-              className={`w-full px-4 py-3 border rounded-lg text-center text-xl font-mono tracking-widest focus:border-transparent transition-all ${
-                errors.otpCode ? "border-red-500 bg-red-50" : "border-gray-300"
-              }`}
+              className={`w-full px-4 py-3 border rounded-lg text-center text-xl font-mono tracking-widest focus:border-transparent transition-all ${errors.otpCode ? "border-red-500 bg-red-50" : "border-gray-300"
+                }`}
               onChange={handleOtpChange}
               autoComplete="off"
               autoFocus
@@ -158,11 +147,10 @@ const VerifyOtp = () => {
           <button
             type="submit"
             disabled={isButtonDisabled}
-            className={`w-full py-3 px-4 rounded-lg cursor-pointer text-white font-semibold transition-all duration-200 ${
-              isButtonDisabled
-                ? "bg-gray-400 cursor-not-allowed opacity-60" 
+            className={`w-full py-3 px-4 rounded-lg cursor-pointer text-white font-semibold transition-all duration-200 ${isButtonDisabled
+                ? "bg-gray-400 cursor-not-allowed opacity-60"
                 : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 active:transform active:scale-95 shadow-lg hover:shadow-xl"
-            }`}
+              }`}
           >
             {isLoading ? (
               <span className="flex items-center justify-center">
@@ -179,7 +167,7 @@ const VerifyOtp = () => {
         </form>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default VerifyOtp;
+export default RegisterOtp;
