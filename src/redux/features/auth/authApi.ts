@@ -72,6 +72,14 @@ export const authApi = createApi({
             }),
             invalidatesTags: ["Auth"],
         }),
+        // POST /api/auth/resend-login-otp (re-sends OTP with cooldown check)
+        resendLoginOtp: builder.mutation<ApiResponse<{ email: string }>, { email: string }>({
+            query: (body) => ({
+                url: "/resend-login-otp",
+                method: "POST",
+                body: body,
+            }),
+        }),
         // POST /api/auth/forgot-password (sends OTP via email)
         forgotPassword: builder.mutation<ApiResponse<undefined>, { email: string }>({
             query: (body) => ({
@@ -99,4 +107,4 @@ export const authApi = createApi({
     })
 })
 
-export const { useRegisterMutation, useVerifyRegisterOtpMutation, useLoginMutation, useVerifyOtpMutation, useForgotPasswordMutation, useResetPasswordMutation, useLogoutMutation } = authApi;
+export const { useRegisterMutation, useVerifyRegisterOtpMutation, useLoginMutation, useVerifyOtpMutation, useResendLoginOtpMutation, useForgotPasswordMutation, useResetPasswordMutation, useLogoutMutation } = authApi;

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { useVerifyOtpMutation } from "../redux/features/auth/authApi";
+import { useVerifyOtpMutation, useResendLoginOtpMutation } from "../redux/features/auth/authApi";
 import { useDispatch } from "react-redux";
 import { setUser } from "../redux/features/auth/authSlice";
 
@@ -17,9 +17,12 @@ const VerifyOtp = () => {
   const [email, setEmail] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
-  const [resendMessage] = useState("");
+  const [resendMessage, setResendMessage] = useState("");
+
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<OtpInputs>();
   const [verifyOtp, { isLoading }] = useVerifyOtpMutation();
+  const [resendLoginOtp, { isLoading: resendLoading }] = useResendLoginOtpMutation();
+
   const otpValue = watch("otpCode", "");
 
   useEffect(() => {
@@ -37,7 +40,7 @@ const VerifyOtp = () => {
     }
   }, [navigate]);
 
-  // Countdown timer for resend button
+  // Countdown timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (resendCountdown > 0) {
@@ -55,15 +58,9 @@ const VerifyOtp = () => {
       const response = await verifyOtp({ email, otpCode }).unwrap();
       if (response.success && response.data) {
         const { token, id, username, email: userEmail } = response.data;
-        // Update Redux store
-        dispatch(setUser({ token, user: {
-          id, username, email: userEmail,
-          message: ""
-        }}));
-        // Clear pending user data
+        dispatch(setUser({ token, user: { id, username, email: userEmail, message: "" } }));
         localStorage.removeItem("pendingUser");
         setSuccessMessage("Login successful! Redirecting...");
-        // Navigate to dashboard/home after short delay
         setTimeout(() => {
           navigate("/");
         }, 100);
@@ -74,14 +71,28 @@ const VerifyOtp = () => {
     }
   };
 
-  // Handle OTP input with proper form state management
   const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 6);
     setValue("otpCode", value, { shouldValidate: true });
   };
 
-  // Check if button should be enabled
+  // 👉 resend OTP handler
+  const handleResendOtp = async () => {
+    try {
+      setError("");
+      setResendMessage("");
+      const res = await resendLoginOtp({ email }).unwrap();
+      if (res.success) {
+        setResendMessage("A new OTP has been sent to your email.");
+        setResendCountdown(60); // 1 minute cooldown
+      }
+    } catch (err: any) {
+      setError(err?.data?.message || err?.data?.error || "Failed to resend OTP");
+    }
+  };
+
   const isButtonDisabled = isLoading || otpValue.length !== 6;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-white shadow-xl rounded-2xl border border-gray-200 p-8 w-full max-w-md">
@@ -92,36 +103,30 @@ const VerifyOtp = () => {
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-800 mb-2">Verify Your Email</h2>
-          <p className="text-gray-600">
-            We've sent a 6-digit verification code to
-          </p>
+          <p className="text-gray-600">We've sent a 6-digit verification code to</p>
           <p className="text-blue-600 font-semibold">{email}</p>
         </div>
+
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             <p className="text-sm text-center">{error}</p>
           </div>
         )}
+
         {successMessage && (
           <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
             <p className="text-sm text-center flex items-center justify-center">
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-              </svg>
-              {successMessage}
+              ✅ {successMessage}
             </p>
           </div>
         )}
+
         {resendMessage && (
           <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg mb-4">
-            <p className="text-sm text-center flex items-center justify-center">
-              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
-              </svg>
-              {resendMessage}
-            </p>
+            <p className="text-sm text-center">{resendMessage}</p>
           </div>
         )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -150,11 +155,10 @@ const VerifyOtp = () => {
               <p className="text-red-500 text-sm mt-1 text-center">{errors.otpCode.message}</p>
             )}
             <div className="text-center mt-2">
-              <span className="text-xs text-gray-500">
-                {otpValue.length}/6 digits entered
-              </span>
+              <span className="text-xs text-gray-500">{otpValue.length}/6 digits entered</span>
             </div>
           </div>
+
           <button
             type="submit"
             disabled={isButtonDisabled}
@@ -164,19 +168,28 @@ const VerifyOtp = () => {
                 : "bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 active:transform active:scale-95 shadow-lg hover:shadow-xl"
             }`}
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Verifying...
-              </span>
-            ) : (
-              <span>Verify & Sign In</span>
-            )}
+            {isLoading ? "Verifying..." : "Verify & Sign In"}
           </button>
         </form>
+
+        {/* Resend OTP Section */}
+        <div className="text-center mt-6">
+          <button
+            onClick={handleResendOtp}
+            disabled={resendCountdown > 0 || resendLoading}
+            className={`text-sm font-medium ${
+              resendCountdown > 0 || resendLoading
+                ? "text-gray-400 cursor-not-allowed"
+                : "text-blue-600 hover:underline"
+            }`}
+          >
+            {resendLoading
+              ? "Resending..."
+              : resendCountdown > 0
+                ? `Resend OTP in ${resendCountdown}s`
+                : "Resend OTP"}
+          </button>
+        </div>
       </div>
     </div>
   );
