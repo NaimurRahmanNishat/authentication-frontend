@@ -1,4 +1,6 @@
-# React + TypeScript + Vite
+<img width="1916" height="943" alt="image" src="https://github.com/user-attachments/assets/967f0d4c-2ce4-42cb-9dc4-1d35ad15ae7c" />
+
+# Otp based authentication
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
